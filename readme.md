@@ -1,3 +1,5 @@
+# Des screens de l'applications sont dispo dans le dossier "screens du projet"
+
 # HackaPlan - Plateforme de Gestion de Hackathons
 
 HackaPlan est une plateforme complète pour organiser et gérer des hackathons, permettant aux organisateurs de créer des événements, aux participants de soumettre des projets et de former des équipes, et aux jurys d'évaluer les projets.
