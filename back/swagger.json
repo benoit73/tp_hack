@@ -1,0 +1,1155 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "HackaPlan API",
+    "version": "1.0.0",
+    "description": "API pour la gestion de hackathons"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Serveur de développement"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID unique de l'utilisateur"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email de l'utilisateur"
+          },
+          "password": {
+            "type": "string",
+            "description": "Mot de passe de l'utilisateur"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "Prénom de l'utilisateur"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "Nom de l'utilisateur"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["organizer", "participant", "jury"],
+            "description": "Rôle de l'utilisateur"
+          }
+        }
+      },
+      "Hackathon": {
+        "type": "object",
+        "required": ["name", "start_date", "end_date", "created_by"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID unique du hackathon"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nom du hackathon"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description du hackathon"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date de début du hackathon"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date de fin du hackathon"
+          },
+          "created_by": {
+            "type": "integer",
+            "description": "ID de l'organisateur"
+          }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "required": ["title", "hackathon_id", "created_by"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID unique du projet"
+          },
+          "title": {
+            "type": "string",
+            "description": "Titre du projet"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description du projet"
+          },
+          "hackathon_id": {
+            "type": "integer",
+            "description": "ID du hackathon"
+          },
+          "created_by": {
+            "type": "integer",
+            "description": "ID du créateur"
+          }
+        }
+      },
+      "Team": {
+        "type": "object",
+        "required": ["team_name", "project_id"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID unique de l'équipe"
+          },
+          "team_name": {
+            "type": "string",
+            "description": "Nom de l'équipe"
+          },
+          "project_id": {
+            "type": "integer",
+            "description": "ID du projet"
+          }
+        }
+      },
+      "Score": {
+        "type": "object",
+        "required": ["jury_id", "team_id", "score"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID unique du score"
+          },
+          "jury_id": {
+            "type": "integer",
+            "description": "ID du jury"
+          },
+          "team_id": {
+            "type": "integer",
+            "description": "ID de l'équipe"
+          },
+          "score": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Note attribuée"
+          },
+          "comment": {
+            "type": "string",
+            "description": "Commentaire du jury"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Message d'erreur"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Inscription d'un nouvel utilisateur",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "first_name": {
+                    "type": "string"
+                  },
+                  "last_name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": ["organizer", "participant", "jury"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Utilisateur créé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Email déjà existant"
+          },
+          "500": {
+            "description": "Erreur serveur"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Connexion d'un utilisateur",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connexion réussie"
+          },
+          "401": {
+            "description": "Identifiants invalides"
+          },
+          "500": {
+            "description": "Erreur serveur"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Récupérer le profil utilisateur",
+        "tags": ["Auth"],
+        "responses": {
+          "200": {
+            "description": "Profil utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "summary": "Récupérer tous les utilisateurs",
+        "tags": ["Users"],
+        "responses": {
+          "200": {
+            "description": "Liste des utilisateurs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Créer un nouvel utilisateur",
+        "tags": ["Users"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Utilisateur créé avec succès"
+          },
+          "400": {
+            "description": "Données invalides"
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "summary": "Récupérer un utilisateur par ID",
+        "tags": ["Users"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Utilisateur trouvé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        }
+      },
+      "put": {
+        "summary": "Mettre à jour un utilisateur",
+        "tags": ["Users"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "first_name": {
+                    "type": "string"
+                  },
+                  "last_name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": ["organizer", "participant", "jury"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Utilisateur mis à jour"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Supprimer un utilisateur",
+        "tags": ["Users"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Utilisateur supprimé"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        }
+      }
+    },
+    "/hackathons": {
+      "get": {
+        "summary": "Récupérer tous les hackathons",
+        "tags": ["Hackathons"],
+        "responses": {
+          "200": {
+            "description": "Liste des hackathons",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Hackathon"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Créer un nouveau hackathon",
+        "tags": ["Hackathons"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Hackathon"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Hackathon créé avec succès"
+          },
+          "403": {
+            "description": "Seuls les organisateurs peuvent créer des hackathons"
+          }
+        }
+      }
+    },
+    "/hackathons/{id}": {
+      "get": {
+        "summary": "Récupérer un hackathon par ID",
+        "tags": ["Hackathons"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hackathon trouvé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Hackathon"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Hackathon non trouvé"
+          }
+        }
+      },
+      "put": {
+        "summary": "Mettre à jour un hackathon",
+        "tags": ["Hackathons"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Hackathon"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hackathon mis à jour"
+          },
+          "404": {
+            "description": "Hackathon non trouvé"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Supprimer un hackathon",
+        "tags": ["Hackathons"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hackathon supprimé"
+          },
+          "404": {
+            "description": "Hackathon non trouvé"
+          }
+        }
+      }
+    },
+    "/hackathons/{id}/close": {
+      "post": {
+        "summary": "Fermer un hackathon",
+        "tags": ["Hackathons"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hackathon fermé"
+          },
+          "404": {
+            "description": "Hackathon non trouvé"
+          }
+        }
+      }
+    },
+    "/hackathons/{id}/projects": {
+      "get": {
+        "summary": "Récupérer les projets d'un hackathon",
+        "tags": ["Hackathons"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des projets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Project"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects": {
+      "post": {
+        "summary": "Créer un nouveau projet",
+        "tags": ["Projects"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Project"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Projet créé avec succès"
+          },
+          "404": {
+            "description": "Hackathon ou utilisateur non trouvé"
+          }
+        }
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "summary": "Récupérer un projet par ID",
+        "tags": ["Projects"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Projet trouvé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        }
+      },
+      "put": {
+        "summary": "Mettre à jour un projet",
+        "tags": ["Projects"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Projet mis à jour"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Supprimer un projet",
+        "tags": ["Projects"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Projet supprimé"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/team": {
+      "get": {
+        "summary": "Récupérer l'équipe d'un projet",
+        "tags": ["Teams"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Équipe trouvée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Équipe non trouvée"
+          }
+        }
+      },
+      "post": {
+        "summary": "Créer une équipe pour un projet",
+        "tags": ["Teams"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["team_name"],
+                "properties": {
+                  "team_name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Équipe créée avec succès"
+          },
+          "400": {
+            "description": "Une équipe existe déjà pour ce projet"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        }
+      }
+    },
+    "/teams/{id}": {
+      "put": {
+        "summary": "Mettre à jour une équipe",
+        "tags": ["Teams"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "team_name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Équipe mise à jour"
+          },
+          "404": {
+            "description": "Équipe non trouvée"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Supprimer une équipe",
+        "tags": ["Teams"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Équipe supprimée"
+          },
+          "404": {
+            "description": "Équipe non trouvée"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/join": {
+      "post": {
+        "summary": "Rejoindre une équipe",
+        "tags": ["Teams"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["user_id"],
+                "properties": {
+                  "user_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Membre ajouté à l'équipe"
+          },
+          "400": {
+            "description": "L'utilisateur est déjà membre de cette équipe"
+          },
+          "403": {
+            "description": "Seuls les participants peuvent rejoindre des équipes"
+          },
+          "404": {
+            "description": "Équipe ou utilisateur non trouvé"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/members": {
+      "get": {
+        "summary": "Récupérer les membres d'une équipe",
+        "tags": ["Teams"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des membres"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/members/{userId}": {
+      "delete": {
+        "summary": "Retirer un membre d'une équipe",
+        "tags": ["Teams"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Membre retiré de l'équipe"
+          },
+          "404": {
+            "description": "Membre non trouvé dans cette équipe"
+          }
+        }
+      }
+    },
+    "/scores": {
+      "get": {
+        "summary": "Récupérer tous les scores",
+        "tags": ["Scores"],
+        "responses": {
+          "200": {
+            "description": "Liste des scores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Score"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Créer un nouveau score",
+        "tags": ["Scores"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Score"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Score créé avec succès"
+          },
+          "400": {
+            "description": "Score déjà existant pour ce jury et cette équipe"
+          },
+          "403": {
+            "description": "Seuls les membres du jury peuvent attribuer des scores"
+          },
+          "404": {
+            "description": "Jury ou équipe non trouvé"
+          }
+        }
+      }
+    },
+    "/scores/{id}": {
+      "put": {
+        "summary": "Mettre à jour un score",
+        "tags": ["Scores"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "score": {
+                    "type": "number",
+                    "format": "float",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "comment": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Score mis à jour"
+          },
+          "404": {
+            "description": "Score non trouvé"
+          }
+        }
+      }
+    },
+    "/teams/{id}/scores": {
+      "get": {
+        "summary": "Récupérer les scores d'une équipe",
+        "tags": ["Scores"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scores de l'équipe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Score"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/hackathons/{id}/results": {
+      "get": {
+        "summary": "Récupérer les résultats d'un hackathon",
+        "tags": ["Results"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultats du hackathon"
+          },
+          "404": {
+            "description": "Hackathon non trouvé"
+          }
+        }
+      }
+    },
+    "/hackathons/{id}/results/validate": {
+      "post": {
+        "summary": "Valider les résultats d'un hackathon",
+        "tags": ["Results"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultats validés"
+          },
+          "400": {
+            "description": "Impossible de valider avant la fin du hackathon"
+          },
+          "404": {
+            "description": "Hackathon non trouvé"
+          }
+        }
+      }
+    },
+    "/teams": {
+      "get": {
+        "summary": "Récupérer toutes les équipes",
+        "tags": ["Teams"],
+        "responses": {
+          "200": {
+            "description": "Liste des équipes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Team"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
